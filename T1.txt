@@ -1,0 +1,89 @@
+from tkinter import *
+from tkinter.messagebox import *
+import sqlite3
+
+# Function to validate input
+def validate_input(entry):
+    value = entry.get().strip()
+    if not value:
+        return False, "empty"
+    try:
+        float_value = float(value)
+        if float_value < 0:
+            return False, "negative"
+        return True, float_value
+    except ValueError:
+        return False, "non-numeric"
+
+# Function to convert liters to gallons
+def liters_to_gallons():
+    valid, liters = validate_input(liters_entry)
+    if valid:
+        gallons = liters * 0.264172
+        gallons_entry.insert(0, str(round(gallons, 2)))
+    else:
+        showerror("Error", "Invalid input for Liters. Please enter a valid numeric value.")
+        liters_entry.delete(0, END)
+        liters_entry.focus()
+
+# Function to save conversion history to SQLite database
+def save_conversion():
+    # Validate liters input
+    valid_liters, liters_value = validate_input(liters_entry)
+    if not valid_liters:
+        showerror("Error", f"Invalid input for Liters: {liters_value}")
+        liters_entry.delete(0, END)
+        liters_entry.focus()
+        return
+      
+    # Validate gallons input
+    valid_gallons, gallons_value = validate_input(gallons_entry)
+    if not valid_gallons:
+        showerror("Error", f"Invalid input for Gallons: {gallons_value}")
+        gallons_entry.delete(0, END)
+        gallons_entry.focus()
+        return
+
+    # Save conversion to SQLite database
+    try:
+        conn = sqlite3.connect('conversion_history.db')
+        c = conn.cursor()
+        c.execute("CREATE TABLE IF NOT EXISTS conversions (liters REAL, gallons REAL)")
+        c.execute("INSERT INTO conversions VALUES (?, ?)", (liters_value, gallons_value))
+        conn.commit()
+        conn.close()
+        showinfo("Success", "Conversion history saved successfully")
+        liters_entry.delete(0, END)
+        gallons_entry.delete(0, END)
+        liters_entry.focus()
+    except Exception as e:
+        showerror("Error", f"Failed to save conversion history: {e}")
+
+# GUI setup
+root = Tk()
+root.title("Volume Converter")
+root.geometry("1000x600+200+100")
+root.configure(bg="#FFC0CB")  # Set background color to pink
+f = ("Times New Roman", 30, "bold")
+
+title_label = Label(root, text="Volume Converter App ", font=f,bg="#FFC0CB")
+
+liters_label = Label(root, text="Liters:", font=f, bg="#FFC0CB")  
+liters_entry = Entry(root, font=f)
+
+gallons_label = Label(root, text="Gallons:", font=f, bg="#FFC0CB")  
+gallons_entry = Entry(root, font=f)
+
+
+convert_button = Button(root, text="Convert", font=f, command=liters_to_gallons,bg="#FFC0CB")
+save_button = Button(root, text="Save Conversion", font=f, command=save_conversion,bg="#FFC0CB")
+
+title_label.place(x=300,y=50)
+liters_label.place(x=150,y=150)
+liters_entry.place(x=300,y=150)
+gallons_label.place(x=150,y=250)
+gallons_entry.place(x=300,y=250)
+convert_button.place(x=380,y=330)
+save_button.place(x=300,y=430)
+
+root.mainloop()
